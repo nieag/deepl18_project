@@ -18,10 +18,10 @@ def load_landmarks(path):
     return train_landmarks, valid_landmarks
 
 def split_data(path, train_amount=0.8):
-    train_dir = temp;
+    train_dir = path;
     valid_dir = temp;
 
-    i = 0
+    i = 1
     with open(path + '/training.txt') as f:
         lines = f.readlines()
         n_samples = len(lines)
@@ -32,6 +32,7 @@ def split_data(path, train_amount=0.8):
                 shutil.copy(source, train_dir)
             else:
                 shutil.copy(source, valid_dir)
+            i += 1
 
 
 
