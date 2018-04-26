@@ -1,7 +1,7 @@
 from keras.applications.inception_v3 import InceptionV3
 from keras.preprocessing.image import ImageDataGenerator, load_img
 from keras.models import Sequential, load_model
-from keras.layers import Dense, Activation, Flatten
+from keras.layers import Dense, Activation, Flatten, GlobalAveragePooling2D
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -21,7 +21,7 @@ def visualise_sample(img, landmarks):
     plt.show()
 
 def get_landmarks(path, train_amount):
-    with open(path + '/temp.txt') as f:
+    with open(path + '/training.txt') as f:
         lines = f.readlines()
         landmarks = [np.asfarray(line.strip('\n').split()[1:11]) for line in lines]
         landmarks = np.asarray(landmarks)
@@ -43,7 +43,7 @@ def split_data(path, train_amount=0.8):
     valid_dir = path + '/validation_data/validation_data';
 
     i = 0
-    with open(path + '/temp.txt') as f:
+    with open(path + '/training.txt') as f:
         lines = f.readlines()
         # lines = lines[:-1]
         n_samples = len(lines)
@@ -60,25 +60,44 @@ def split_data(path, train_amount=0.8):
 
     print('Copied {} files'.format(i))
 
+def add_top_layer(generator):
+    base_model = InceptionV3(include_top=False, weights='imagenet')
+    base_output = base_model.output
+    base_output = GlobalAveragePooling2D()(base_output)
+    base_output = Dense(2048, activation='relu')(base_output)
+    predictions = Dense(10, activation=None)(base_output)
+
+    model = Model(inputs=base_model.input, outputs = predictions)
+
+    for layer in base_model.layers:
+        layer.trainable = False
+
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.fit_generator(generator, train_samples/train_batch_size, epochs, validation_data=(valid_gen, valid_landmarks), validation_steps=valid_samples/valid_batch_size)
+    fit_generator(self, generator, steps_per_epoch=None, epochs=1, verbose=1,
+    callbacks=None, validation_data=None, validation_steps=None, class_weight=None,
+    max_queue_size=10, workers=1, use_multiprocessing=False, shuffle=True, initial_epoch=0)
+
 def generate_bottle_neck(path, batch_size):
     model = InceptionV3(include_top=False, weights='imagenet')
     datagen = ImageDataGenerator()
 
-
     train_gen = datagen.flow_from_directory(
                 path+'/training_data',
-                color_mode='grayscale',
+                # color_mode='grayscale',
                 class_mode=None,
                 batch_size=batch_size,
                 shuffle=False)
 
-    bottle_feat_train = model.predict_generator(train_gen)
+    print(train_gen)
+
+    bottle_feat_train = model.predict_generator(train_gen, verbose=1)
 
     np.save(path + '/bottleneck_features_train.npy', bottle_feat_train)
 
     valid_gen = datagen.flow_from_directory(
                 path+'/validation_data',
-                color_mode='grayscale',
+                # color_mode='grayscale',
                 class_mode=None,
                 batch_size=batch_size,
                 shuffle=False)
@@ -88,14 +107,13 @@ def generate_bottle_neck(path, batch_size):
 
     test_gen = datagen.flow_from_directory(
                 path+'/testing_data',
-                color_mode='grayscale',
+                # color_mode='grayscale',
                 class_mode=None,
                 batch_size=batch_size,
                 shuffle=False)
-
     bottle_feat_test = model.predict_generator(test_gen)
-    np.save(path + '/bottleneck_features_test.npy', bottle_feat_test)
 
+    np.save(path + '/bottleneck_features_test.npy', bottle_feat_test)
 
 def train_top_regression(path):
     train_data = np.load(path + '/bottleneck_features_train.npy')
@@ -103,8 +121,8 @@ def train_top_regression(path):
     print(train_data.shape)
     print(valid_data.shape)
     train_land, valid_land, test_land = get_landmarks(path, 0.8)
-    epochs = 100;
-    batch_size = 50;
+    epochs = 10;
+    batch_size = 100;
 
     model = Sequential()
     model.add(Flatten(input_shape=train_data.shape[1:]))
@@ -120,14 +138,14 @@ def train_top_regression(path):
 
 if __name__ == '__main__':
     path = '/home/niels/Documents/deepl18_project/MTFL'
-    im = load_img(path+'/testing_data/testing_data/0001-image20056.jpg')
+    # im = load_img(path+'/testing_data/testing_data/0001-image20056.jpg')
 
-    # split_data(path)
-    generate_bottle_neck(path, 50)
-    train_top_regression(path)
-    model = load_model(path+'/test_model')
-    test_data = np.load(path + '/bottleneck_features_test.npy')
-    # print(test_data)
-    prediction = model.predict(test_data)
-    print(prediction)
-    visualise_sample(im, prediction)
+    split_data(path)
+    generate_bottle_neck(path, 200)
+    # train_top_regression(path)
+    # model = load_model(path+'/test_model')
+    # test_data = np.load(path + '/bottleneck_features_test.npy')
+    # # print(test_data)
+    # prediction = model.predict(test_data)
+    # print(prediction)
+    # visualise_sample(im, prediction)
