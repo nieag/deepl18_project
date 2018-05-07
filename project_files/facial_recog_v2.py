@@ -3,13 +3,16 @@ from keras.preprocessing.image import ImageDataGenerator, load_img
 from keras.models import Sequential, load_model, Model
 from keras.layers import Dense, Activation, Flatten, GlobalAveragePooling2D, Dropout
 from keras.optimizers import Adam
-from keras.callbacks import LearningRateScheduler
+from keras.callbacks import CSVLogger
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import shutil
 import glob
+import csv
+
+
 
 def inception_regression(X, y, validation_data, epochs):
     base_model = InceptionV3(weights='imagenet', include_top=False)
@@ -27,14 +30,15 @@ def inception_regression(X, y, validation_data, epochs):
         layer.trainable = False
 
     model.compile(optimizer='adam', loss='mse')
-    model.fit(X, y, validation_data=validation_data, epochs=epochs, batch_size=32)
+    csv_logger = CSVLogger('log.csv', append=True, separator=';')
+    model.fit(X, y, validation_data=validation_data, epochs=epochs, batch_size=32, callbacks=[csv_logger])
     return model
 
 def split_data(path):
     train_dir = path + '/training_data/training_data';
 
     i = 0
-    with open(path + '/training.txt') as f:
+    with open(path + '/temp.txt') as f:
         lines = f.readlines()
         for line in lines:
             current = line.strip('\n').split()[0]
@@ -46,7 +50,7 @@ def split_data(path):
 
     i=0
     test_dir = path + '/testing_data/testing_data'
-    with open(path + '/testing.txt') as f:
+    with open(path + '/temp.txt') as f:
         lines = f.readlines()
         for line in lines:
             current = line.strip('\n').split()[0]
@@ -83,6 +87,11 @@ def import_images(path, text_path):
 
     return image_list, landmarks
 
+def plot_sample(img, y):
+    plt.imshow(img, cmap='gray')
+    plt.scatter(y[:5] * 50 + 50, y[5:] * 50 + 50)
+    plt.show()
+
 if __name__ == '__main__':
     path = '/home/niels/Documents/deepl18_project/MTFL'
     im = '/home/niels/Documents/deepl18_project/MTFL/AFLW/0001-image20056.jpg'
@@ -90,25 +99,30 @@ if __name__ == '__main__':
     test_land_path = '/home/niels/Documents/deepl18_project/MTFL/temp_test.txt'
 
     """GCP paths"""
-    path = '/home/niels/Documents/deepl18_project/MTFL'
-    train_land_path = '/home/niels/Documents/deepl18_project/MTFL/training.txt'
-    test_land_path = '/home/niels/Documents/deepl18_project/MTFL/testing.txt'
+    # path = '/home/niels/Documents/deepl18_project/MTFL'
+    # train_land_path = '/home/niels/Documents/deepl18_project/MTFL/training.txt'
+    # test_land_path = '/home/niels/Documents/deepl18_project/MTFL/testing.txt'
 
-    split_data(path)
-    train_images, train_landmarks = import_images(path, train_land_path)
+    # split_data(path)
+    # train_images, train_landmarks = import_images(path, train_land_path)
     # print(np.max(train_images))
     # print(np.min(train_images))
     # print(np.max(train_landmarks))
     # print(np.min(train_landmarks))
-    test_images, test_landmarks = import_images(path, test_land_path)
-    print(test_images.shape)
+    # test_images, test_landmarks = import_images(path, test_land_path)
     # model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 10)
     # model.save(path+'/test_model.h5')
     # model = load_model(path+'/test_model.h5')
     # prediction = model.predict(test_images)
     # print(prediction[0])
     # print(test_landmarks[0])
+    # test = [1, 1, 1]
+    # test = np.array(test)
+    # np.save('test.npy', test)
+    # predictions = np.load('predictions_test.npy')
+    # print(predictions[0])
+    # plot_sample(test_images[0], predictions[0])
     # plt.figure()
     # plt.imshow(test_images[0])
-    # plt.scatter(test_landmarks[0][:5], test_landmarks[0][5:])
+    # plt.scatter(predictions[0][:5], predictions[0][5:])
     # plt.show()
