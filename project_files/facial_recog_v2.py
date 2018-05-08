@@ -15,42 +15,50 @@ import pandas as pd
 
 
 def inception_regression(X, y, validation_data, epochs):
-    datagen = ImageDataGenerator(featurewise_center=True,
-                                featurewise_std_normalization=True,
+    datagen = ImageDataGenerator(samplewise_center=True,
+                                samplewise_std_normalization=True,
                                 # rotation_range=20,
                                 # width_shift_range=0.2,
                                 # height_shift_range=0.2,
                                 horizontal_flip=False)
-    datagen.fit(X)
+    # datagen.fit(X)
 
     base_model = InceptionV3(weights='imagenet', include_top=False, input_tensor=Input(shape=(150, 150, 3)))
     x = base_model.output
-    x = Flatten()(x)
+    # x = Flatten()(x)
+    x = GlobalAveragePooling2D()(x)
+    x = Dropout(0.5)(x)
     x = Dense(2048, activation='relu')(x)
     predictions = Dense(10, activation='linear')(x)
 
     # This is the model we will train
     model = Model(inputs=base_model.input, outputs=predictions)
     # Freeze the inception model
-    for layer in base_model.layers:
+    for layer in base_model.layers[:-4]:
         layer.trainable = False
 
-    model.compile(optimizer='adam', loss='mse')
+    for layer in base_model.layers:
+        print(layer.trainable)
 
+    model.compile(optimizer='adam', loss='mse', metrics=['mae', 'acc'])
+    # print(model.summary())
     # Callbacks
-    early_stop = EarlyStopping(patience=2)
+    early_stop = EarlyStopping(patience=20)
     tensorboard = TensorBoard(log_dir='./logs', histogram_freq=0,
                           write_graph=True, write_images=True)
-    model.fit_generator(datagen.flow(X, y, batch_size=32), validation_data=validation_data, epochs=epochs, callbacks=[tensorboard, early_stop])
-    # model.fit(X, y, batch_size=32, validation_data=validation_data, epochs=epochs, callbacks=[tensorboard])
+    model.fit_generator(datagen.flow(X, y, batch_size=32, shuffle=True),
+                                     validation_data=validation_data,
+                                     epochs=epochs,
+                                     callbacks=[tensorboard, early_stop])
+    # model.fit(X, y, validation_data=validation_data, epochs=epochs, callbacks=[tensorboard])
     return model
 
-def data_gen_flip(data_gen, flip_p=0.5):
-    for x, y in data_gen:
-        flip_selector = numpy.random.binomial(1, flip_p, size=(x.shape[0]) == 1
-        x[flip_selector,:,:,:] = x[flip_selector,:,::-1,:])
-        y[flip_selector] = (-1) * y[flip_selector])
-        yield x, y
+# def data_gen_flip(data_gen, flip_p=0.5):
+#     for x, y in data_gen:
+#         flip_selector = numpy.random.binomial(1, flip_p, size=(x.shape[0]) == 1
+#         x[flip_selector,:,:,:] = x[flip_selector,:,::-1,:])
+#         y[flip_selector] = (-1) * y[flip_selector])
+#         yield x, y
 
 def split_data(path):
     train_dir = path + '/training_data/training_data';
@@ -107,7 +115,7 @@ def import_images(path, text_path):
 def plot_sample(img, y):
     plt.figure()
     plt.imshow(img)
-    plt.scatter(y[:5] * 50 + 50, y[5:] * 50 + 50)
+    plt.scatter(y[:5] * 75 + 75, y[5:] * 75 + 75)
 
 def read_csv(path):
     df=pd.read_csv(path, sep=';' ,header=None)
@@ -135,7 +143,7 @@ if __name__ == '__main__':
     # print(np.max(train_landmarks))
     # print(np.min(train_landmarks))
     test_images, test_landmarks = import_images(path, test_land_path)
-    model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 10)
+    model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 20)
     # model.save(path+'/test_model.h5')
     # model = load_model(path+'/test_model.h5')
     # prediction = model.predict(test_images)
@@ -146,6 +154,6 @@ if __name__ == '__main__':
     # np.save('test.npy', test)
     # predictions = np.load('prediction.npy')
     # for i in range(10):
-    #     print(predictions[i]*50 + 50)
+    #     print(predictions[i]*75 + 75)
     #     plot_sample(test_images[i], predictions[i])
     # plt.show()
