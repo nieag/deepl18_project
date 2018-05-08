@@ -1,7 +1,7 @@
 from keras.applications.inception_v3 import InceptionV3
 from keras.preprocessing.image import ImageDataGenerator, load_img
 from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Activation, Flatten, GlobalAveragePooling2D, Dropout
+from keras.layers import Dense, Activation, Flatten, GlobalAveragePooling2D, Dropout, Input
 from keras.optimizers import Adam
 from keras.callbacks import LearningRateScheduler
 from PIL import Image
@@ -84,15 +84,14 @@ def import_images(path, text_path):
     return image_list, landmarks
 
 if __name__ == '__main__':
-    path = '/home/niels/Documents/deepl18_project/MTFL'
-    im = '/home/niels/Documents/deepl18_project/MTFL/AFLW/0001-image20056.jpg'
-    train_land_path = '/home/niels/Documents/deepl18_project/MTFL/temp.txt'
-    test_land_path = '/home/niels/Documents/deepl18_project/MTFL/temp_test.txt'
+
+    train_land_path = 'C:\Users\samy_\OneDrive\Documents\DeepLearningProject\MTFL\tmp_training.txt'
+    test_land_path = 'C:\Users\samy_\OneDrive\Documents\DeepLearningProject\MTFL\tmp_testing.txt'
 
     """GCP paths"""
-    path = '/home/niels/Documents/deepl18_project/MTFL'
-    train_land_path = '/home/niels/Documents/deepl18_project/MTFL/training.txt'
-    test_land_path = '/home/niels/Documents/deepl18_project/MTFL/testing.txt'
+    path = 'C:\Users\samy_\OneDrive\Documents\DeepLearningProject\MTFL'
+    #train_land_path = 'C:\Users\samy_\OneDrive\Documents\DeepLearningProject\MTFL\ training.txt'
+    #test_land_path = 'C:\Users\samy_\OneDrive\Documents\DeepLearningProject\MTFL\ testing.txt'
 
     split_data(path)
     train_images, train_landmarks = import_images(path, train_land_path)
@@ -102,7 +101,7 @@ if __name__ == '__main__':
     # print(np.min(train_landmarks))
     test_images, test_landmarks = import_images(path, test_land_path)
     print(test_images.shape)
-    # model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 10)
+    model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 10)
     # model.save(path+'/test_model.h5')
     # model = load_model(path+'/test_model.h5')
     # prediction = model.predict(test_images)
