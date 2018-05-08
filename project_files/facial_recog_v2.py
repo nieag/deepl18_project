@@ -1,61 +1,43 @@
 from keras.applications.inception_v3 import InceptionV3
 from keras.preprocessing.image import ImageDataGenerator, load_img
 from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Flatten, GlobalAveragePooling2D, Dropout, Input
-from keras.callbacks import TensorBoard, EarlyStopping
-import matplotlib.pyplot as plt
+from keras.layers import Dense, Activation, Flatten, GlobalAveragePooling2D, Dropout
+from keras.optimizers import Adam
+from keras.callbacks import CSVLogger
 from PIL import Image
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import shutil
 import glob
 import csv
-import pandas as pd
 
 
 
 def inception_regression(X, y, validation_data, epochs):
-    datagen = ImageDataGenerator(featurewise_center=True,
-                                featurewise_std_normalization=True,
-                                # rotation_range=20,
-                                # width_shift_range=0.2,
-                                # height_shift_range=0.2,
-                                horizontal_flip=False)
-    datagen.fit(X)
+    base_model = InceptionV3(weights='imagenet', include_top=False)
 
-    base_model = InceptionV3(weights='imagenet', include_top=False, input_tensor=Input(shape=(150, 150, 3)))
+    # add a global spatial average pooling layer
     x = base_model.output
-    x = Flatten()(x)
-    x = Dense(2048, activation='relu')(x)
+    # x = Flatten()(x)
+    x = GlobalAveragePooling2D()(x)
+    x = Dense(1024, activation='relu')(x)
     predictions = Dense(10, activation='linear')(x)
 
-    # This is the model we will train
+    # this is the model we will train
     model = Model(inputs=base_model.input, outputs=predictions)
-    # Freeze the inception model
     for layer in base_model.layers:
         layer.trainable = False
 
     model.compile(optimizer='adam', loss='mse')
-
-    # Callbacks
-    early_stop = EarlyStopping(patience=2)
-    tensorboard = TensorBoard(log_dir='./logs', histogram_freq=0,
-                          write_graph=True, write_images=True)
-    model.fit_generator(datagen.flow(X, y, batch_size=32), validation_data=validation_data, epochs=epochs, callbacks=[tensorboard, early_stop])
-    # model.fit(X, y, batch_size=32, validation_data=validation_data, epochs=epochs, callbacks=[tensorboard])
+    csv_logger = CSVLogger('log.csv', append=True, separator=';')
+    model.fit(X, y, validation_data=validation_data, epochs=epochs, batch_size=32, callbacks=[csv_logger])
     return model
-
-def data_gen_flip(data_gen, flip_p=0.5):
-    for x, y in data_gen:
-        flip_selector = numpy.random.binomial(1, flip_p, size=(x.shape[0]) == 1
-        x[flip_selector,:,:,:] = x[flip_selector,:,::-1,:])
-        y[flip_selector] = (-1) * y[flip_selector])
-        yield x, y
 
 def split_data(path):
     train_dir = path + '/training_data/training_data';
+
     i = 0
-    # with open(path + '/training.txt') as f:
     with open(path + '/temp.txt') as f:
         lines = f.readlines()
         for line in lines:
@@ -68,8 +50,7 @@ def split_data(path):
 
     i=0
     test_dir = path + '/testing_data/testing_data'
-    # with open(path + '/testing.txt') as f:
-    with open(path + '/temp_test.txt') as f:
+    with open(path + '/temp.txt') as f:
         lines = f.readlines()
         for line in lines:
             current = line.strip('\n').split()[0]
@@ -81,7 +62,7 @@ def split_data(path):
 
 def import_images(path, text_path):
     image_list = []
-    size = 150
+    size = 100
     landmarks = []
     with open(text_path) as f:
         lines = f.readlines()
@@ -91,12 +72,14 @@ def import_images(path, text_path):
             im=Image.open(im_path)
             if(im.size[0] == im.size[1] and im.mode=='RGB'):
                 ratio = size/im.size[0]
+                # ratio = 1
                 im.thumbnail((size, size))
                 im = im/np.max(im)
                 im = im.astype(np.float32)
                 landmark = np.asfarray(line.strip('\n').split()[1:11])*ratio
-                landmark = (landmark-75)/75
+                landmark = (landmark-50)/50
                 landmark = landmark.astype(np.float32)
+                # landmark = (landmark - np.mean(landmark))/np.std(landmark)
                 image_list.append(im)
                 landmarks.append(landmark)
     image_list = np.array(image_list)
@@ -105,16 +88,8 @@ def import_images(path, text_path):
     return image_list, landmarks
 
 def plot_sample(img, y):
-    plt.figure()
-    plt.imshow(img)
+    plt.imshow(img, cmap='gray')
     plt.scatter(y[:5] * 50 + 50, y[5:] * 50 + 50)
-
-def read_csv(path):
-    df=pd.read_csv(path, sep=';' ,header=None)
-    test = np.asfarray(df[1:])
-    print(test[:,2])
-    plt.figure()
-    plt.plot(test[:,0], test[:,2])
     plt.show()
 
 if __name__ == '__main__':
@@ -124,18 +99,18 @@ if __name__ == '__main__':
     test_land_path = '/home/niels/Documents/deepl18_project/MTFL/temp_test.txt'
 
     """GCP paths"""
-    # path = '/home/niels_agerskov/deepl18_project/MTFL'
-    # train_land_path = '/home/niels_agerskov/deepl18_project/MTFL/training.txt'
-    # test_land_path = '/home/niels_agerskov/deepl18_project/MTFL/testing.txt'
+    # path = '/home/niels/Documents/deepl18_project/MTFL'
+    # train_land_path = '/home/niels/Documents/deepl18_project/MTFL/training.txt'
+    # test_land_path = '/home/niels/Documents/deepl18_project/MTFL/testing.txt'
 
     # split_data(path)
-    train_images, train_landmarks = import_images(path, train_land_path)
+    # train_images, train_landmarks = import_images(path, train_land_path)
     # print(np.max(train_images))
     # print(np.min(train_images))
     # print(np.max(train_landmarks))
     # print(np.min(train_landmarks))
-    test_images, test_landmarks = import_images(path, test_land_path)
-    model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 10)
+    # test_images, test_landmarks = import_images(path, test_land_path)
+    # model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 10)
     # model.save(path+'/test_model.h5')
     # model = load_model(path+'/test_model.h5')
     # prediction = model.predict(test_images)
@@ -144,8 +119,10 @@ if __name__ == '__main__':
     # test = [1, 1, 1]
     # test = np.array(test)
     # np.save('test.npy', test)
-    # predictions = np.load('prediction.npy')
-    # for i in range(10):
-    #     print(predictions[i]*50 + 50)
-    #     plot_sample(test_images[i], predictions[i])
+    # predictions = np.load('predictions_test.npy')
+    # print(predictions[0])
+    # plot_sample(test_images[0], predictions[0])
+    # plt.figure()
+    # plt.imshow(test_images[0])
+    # plt.scatter(predictions[0][:5], predictions[0][5:])
     # plt.show()
