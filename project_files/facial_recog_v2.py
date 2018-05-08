@@ -53,12 +53,6 @@ def inception_regression(X, y, validation_data, epochs):
     # model.fit(X, y, validation_data=validation_data, epochs=epochs, callbacks=[tensorboard])
     return model
 
-# def data_gen_flip(data_gen, flip_p=0.5):
-#     for x, y in data_gen:
-#         flip_selector = numpy.random.binomial(1, flip_p, size=(x.shape[0]) == 1
-#         x[flip_selector,:,:,:] = x[flip_selector,:,::-1,:])
-#         y[flip_selector] = (-1) * y[flip_selector])
-#         yield x, y
 
 def split_data(path):
     train_dir = path + '/training_data/training_data';
@@ -116,14 +110,6 @@ def plot_sample(img, y):
     plt.figure()
     plt.imshow(img)
     plt.scatter(y[:5] * 75 + 75, y[5:] * 75 + 75)
-
-def read_csv(path):
-    df=pd.read_csv(path, sep=';' ,header=None)
-    test = np.asfarray(df[1:])
-    print(test[:,2])
-    plt.figure()
-    plt.plot(test[:,0], test[:,2])
-    plt.show()
 
 if __name__ == '__main__':
     path = '/home/niels/Documents/deepl18_project/MTFL'
