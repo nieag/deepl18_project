@@ -1,1 +1,8 @@
 tensorflow/
+MTFL/tmp_training.txt
+MTFL/tmp_testing.txt
+.idea/workspace.xml
+.idea/vcs.xml
+.idea/modules.xml
+.idea/misc.xml
+.idea/DeepLearningProject.iml
