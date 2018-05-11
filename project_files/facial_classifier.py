@@ -121,16 +121,23 @@ def import_images(path, text_path,size):
 if __name__ == '__main__':
 
 
-    train_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/tmp_training.txt'
-    test_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/tmp_testing.txt'
+#    train_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/tmp_training.txt'
+ #   test_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/tmp_testing.txt'
 
     size_of_images = 150
     batch_size = 100
     epochs = 3
     """GCP paths"""
-    path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL'
+  #  path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL'
    # train_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/training.txt'
     #test_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/testing.txt'
+"""GCP paths"""
+    path = '/home/niels_agerskov/deepl18_project/MTFL'
+    train_land_path = '/home/niels_agerskov/deepl18_project/MTFL/training.txt'
+    test_land_path = '/home/niels_agerskov/deepl18_project/MTFL/testing.txt'
+
+
+
 
     train_images, train_landmarks = import_images(path, train_land_path, size_of_images)
 
@@ -142,7 +149,7 @@ if __name__ == '__main__':
     print(test_landmarks)
     #print(test_images.shape)
 
-"""""
+
     model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), epochs, batch_size)
     model.save(path+'/test_model.h5')
     model = load_model(path+'/test_model.h5')
@@ -152,4 +159,4 @@ if __name__ == '__main__':
     plt.figure()
     plt.imshow(test_images[0])
     plt.show()
-"""""
+
