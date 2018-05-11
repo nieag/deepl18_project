@@ -4,6 +4,7 @@ from keras.models import Sequential, load_model, Model
 from keras.layers import Dense, Flatten, GlobalAveragePooling2D, Dropout, Input, Conv2D, MaxPooling2D
 from keras.callbacks import TensorBoard, EarlyStopping
 from keras.optimizers import Adam
+from keras import regularizers
 import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
@@ -38,14 +39,14 @@ def inception_regression(X, y, validation_data, epochs):
     x = base_model.output
     # x = Flatten()(x)
     x = GlobalAveragePooling2D()(x)
-    x = Dense(1024, activation='relu')(x)
-    x = Dropout(0.5)(x)
+    x = Dense(1024, activation='relu', kernel_regularizer=regularizers.l2(0.01), bias_regularizer=regularizers.l2(0.01))(x)
+    # x = Dropout(0.5)(x)
     predictions = Dense(10, activation='linear')(x)
 
     # This is the model we will train
     model = Model(inputs=base_model.input, outputs=predictions)
     # Freeze the inception model
-    for layer in base_model.layers[-10:]:
+    for layer in base_model.layers[-4:]:
         layer.trainable = False
     # optimizer = Adam(lr=0.01)
     model.compile(optimizer='adam', loss='mse', metrics=['mae'])
