@@ -15,7 +15,7 @@ import csv
 
 def test_regression(X, y, validation_data, epochs):
     model = Sequential()
-    model.add(Conv2D(32, (3,3), activation='relu', input_shape=(150, 150, 3)))
+    model.add(Conv2D(32, (3,3), activation='relu', input_shape=(224, 224, 3)))
     model.add(MaxPooling2D())
     model.add(Conv2D(64, (2,2), activation='relu'))
     model.add(MaxPooling2D())
@@ -40,13 +40,13 @@ def inception_regression(X, y, validation_data, epochs):
     # x = Flatten()(x)
     x = GlobalAveragePooling2D()(x)
     x = Dense(1024, activation='relu', kernel_regularizer=regularizers.l2(0.01), bias_regularizer=regularizers.l2(0.01))(x)
-    # x = Dropout(0.5)(x)
+    x = Dropout(0.5)(x)
     predictions = Dense(10, activation='linear')(x)
 
     # This is the model we will train
     model = Model(inputs=base_model.input, outputs=predictions)
     # Freeze the inception model
-    for layer in base_model.layers[-4:]:
+    for layer in base_model.layers:
         layer.trainable = False
     # optimizer = Adam(lr=0.01)
     model.compile(optimizer='adam', loss='mse', metrics=['mae'])
@@ -111,6 +111,7 @@ def import_images(path, text_path):
             im=Image.open(im_path)
             if(im.size[0] == im.size[1] and np.max(im) != 0 and im.mode=='RGB'):
                 ratio = size/im.size[0]
+                print(ratio)
                 im.thumbnail((size, size))
                 im = im/np.max(im)
                 landmark = np.asfarray(line.strip('\n').split()[1:11])*ratio
