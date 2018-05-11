@@ -4,6 +4,7 @@ from keras.models import Sequential, load_model, Model
 from keras.layers import Dense, Activation, Flatten, GlobalAveragePooling2D, Dropout, Input
 from keras.optimizers import Adam
 from keras.callbacks import LearningRateScheduler
+from keras.utils import to_categorical
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,7 +37,7 @@ def inception_regression(X, y, validation_data, epochs, batch):
     # let's add a fully-connected layer
     x = Dense(2048, kernel_initializer='normal', activation='relu')(x)
     # and a logistic layer -- let's say we have 200 classes
-    predictions = Dense(1, kernel_initializer='normal', activation='softmax')(x)
+    predictions = Dense(2, kernel_initializer='normal', activation='softmax')(x)
 
     # this is the model we will train
     model = Model(inputs=base_model.input, outputs=predictions)
@@ -47,7 +48,7 @@ def inception_regression(X, y, validation_data, epochs, batch):
         layer.trainable = False
 
     # compile the model (should be done *after* setting layers to non-trainable)
-    model.compile(optimizer='rmsprop', loss='binary_crossentropy',  metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='binary_crossentropy',  metrics=['accuracy'])
 
     # train the model on the new data for a few epochs
     model.fit(X, y, validation_data=validation_data, epochs=epochs, batch_size=batch)
@@ -66,19 +67,19 @@ def inception_regression(X, y, validation_data, epochs, batch):
     # the first 249 layers and unfreeze the rest:
     #for layer in base_model.layers[-4:]:
     #    layer.trainable = True
-    for layer in model.layers[:249]:
-        layer.trainable = False
-    for layer in model.layers[249:]:
-        layer.trainable = True
-    # we need to recompile the model for these modifications to take effect
-    model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='binary_crossentropy',metrics=['accuracy'])
-
-
-
-    # we train our model again (this time fine-tuning the top 2 inception blocks
-    # alongside the top Dense layers
-
-    model.fit(X, y, validation_data=validation_data, epochs=epochs, batch_size=batch)
+    # for layer in model.layers[:249]:
+    #     layer.trainable = False
+    # for layer in model.layers[249:]:
+    #     layer.trainable = True
+    # # we need to recompile the model for these modifications to take effect
+    # model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='binary_crossentropy',metrics=['accuracy'])
+    #
+    #
+    #
+    # # we train our model again (this time fine-tuning the top 2 inception blocks
+    # # alongside the top Dense layers
+    #
+    # model.fit(X, y, validation_data=validation_data, epochs=epochs, batch_size=batch)
 
    # kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=seed)
     #results = cross_val_score(model, X, y, cv=kfold)
@@ -102,21 +103,23 @@ def import_images(path, text_path,size):
               #  im = im/np.max(im)
                 im = np.array(im) #im.astype(np.float32)
                 landmark = np.asfarray(line.strip('\n').split()[12])
-                landmark = landmark.astype(int)
+                print(landmark)
+                if landmark == 2.0:
+                    landmark = 1
+                elif landmark == 1.0:
+                    landmark = 0
                 # landmark = (landmark - np.mean(landmark))/np.std(landmark)
                 image_list.append(im)
                 landmarks.append(landmark)
 
 
 
-    encoder = LabelEncoder()
-    encoder.fit(landmarks)
-    encoded_Y = encoder.transform(landmarks)
+    one_hot = to_categorical(landmarks, num_classes=2)
     image_list = np.array(image_list)
     print(image_list.shape)
-    landmarks = np.array(encoded_Y)
+    # landmarks = np.array(encoded_Y)
 
-    return image_list, landmarks
+    return image_list, one_hot
 
 if __name__ == '__main__':
 
@@ -125,16 +128,16 @@ if __name__ == '__main__':
  #   test_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/tmp_testing.txt'
 
     size_of_images = 150
-    batch_size = 100
+    batch_size = 32
     epochs = 3
+    path = '/home/niels/Documents/deepl18_project/MTFL'
+    im = '/home/niels/Documents/deepl18_project/MTFL/AFLW/0001-image20056.jpg'
+    train_land_path = '/home/niels/Documents/deepl18_project/MTFL/temp.txt'
+    test_land_path = '/home/niels/Documents/deepl18_project/MTFL/temp_test.txt'
     """GCP paths"""
-  #  path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL'
-   # train_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/training.txt'
-    #test_land_path = 'C:/Users/samy_/OneDrive/Documents/DeepLearningProject/MTFL/testing.txt'
-"""GCP paths"""
-    path = '/home/niels_agerskov/deepl18_project/MTFL'
-    train_land_path = '/home/niels_agerskov/deepl18_project/MTFL/training.txt'
-    test_land_path = '/home/niels_agerskov/deepl18_project/MTFL/testing.txt'
+    # path = '/home/niels_agerskov/deepl18_project/MTFL'
+    # train_land_path = '/home/niels_agerskov/deepl18_project/MTFL/training.txt'
+    # test_land_path = '/home/niels_agerskov/deepl18_project/MTFL/testing.txt'
 
 
 
@@ -154,9 +157,10 @@ if __name__ == '__main__':
     model.save(path+'/test_model.h5')
     model = load_model(path+'/test_model.h5')
     prediction = model.predict(test_images)
-    print(prediction[0])
-    print(test_landmarks[0])
+    print("pred")
+    print(prediction)
+    print("test")
+    print(test_landmarks)
     plt.figure()
     plt.imshow(test_images[0])
     plt.show()
-
