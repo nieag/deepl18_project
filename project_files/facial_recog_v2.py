@@ -29,7 +29,7 @@ def inception_regression(X, y, validation_data, epochs):
     x = base_model.output
     # x = Flatten()(x)
     x = GlobalAveragePooling2D()(x)
-    x = Dense(1024, activation='relu')(x)
+    x = Dense(1024, activation='relu', kernel_regularizer=regularizers.l2(0.001), bias_regularizer=regularizers.l2(0.001))(x)
     # x = Dropout(0.5)(x)
     predictions = Dense(10, activation=None)(x)
 
@@ -102,44 +102,13 @@ def import_images(path, text_path):
     image_list = np.array(image_list)
     landmarks = np.array(landmarks)
     image_list = image_list.astype(np.float32)
-    landmakrs = landmarks.astype(np.float32)
+    landmarks = landmarks.astype(np.float32)
     return image_list, landmarks
 
 def plot_sample(img, y):
     plt.figure()
     plt.imshow(img)
     plt.scatter(y[:5] * 75 + 75, y[5:] * 75 + 75)
-
-def load(test=False, cols=None):
-    """Loads data from FTEST if *test* is True, otherwise from FTRAIN.
-    Pass a list of *cols* if you're only interested in a subset of the
-    target columns.
-    """
-    fname = FTEST if test else FTRAIN
-    df = read_csv(os.path.expanduser(fname))  # load pandas dataframe
-
-    # The Image column has pixel values separated by space; convert
-    # the values to numpy arrays:
-    df['Image'] = df['Image'].apply(lambda im: np.fromstring(im, sep=' '))
-
-    if cols:  # get a subset of columns
-        df = df[list(cols) + ['Image']]
-
-    print(df.count())  # prints the number of values for each column
-    df = df.dropna()  # drop all rows that have missing values in them
-
-    X = np.vstack(df['Image'].values) / 255.  # scale pixel values to [0, 1]
-    X = X.astype(np.float32)
-
-    if not test:  # only FTRAIN has any target columns
-        y = df[df.columns[:-1]].values
-        y = (y - 48) / 48  # scale target coordinates to [-1, 1]
-        X, y = shuffle(X, y, random_state=42)  # shuffle train data
-        y = y.astype(np.float32)
-    else:
-        y = None
-
-    return X, y
 
 if __name__ == '__main__':
     path = '/home/niels/Documents/deepl18_project/MTFL'
@@ -169,7 +138,7 @@ if __name__ == '__main__':
     test_images, test_landmarks = import_images(path, test_land_path)
     # print(test_landmarks.shape)
     # print(test_landmarks)
-    model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 10)
+    model = inception_regression(train_images, train_landmarks, (test_images, test_landmarks), 30)
     # model.save(path+'/test_model.h5')
     # model = load_model(path+'/test_model.h5')
     # prediction = model.predict(test_images)
